@@ -12,24 +12,30 @@ function useSortableData(list, order = null) {
     if (sortedField !== null) {
       let sortableItems = [
         ...list.sort((a, b) => {
-          if (sortedField.field === 'wage') {
-            const x = a[sortedField.field].split('.');
-            const y = b[sortedField.field].split('.');
-
-            if (x[0] === y[0]) {
-              if (x[1] > y[1]) {
-                return -1;
-              } else {
-                return 1;
-              }
+          if (
+            isNaN(parseFloat(a[sortedField.field])) ||
+            isNaN(parseFloat(b[sortedField.field]))
+          ) {
+            if (a[sortedField.field] < b[sortedField.field]) {
+              return sortedField.order === 'asc' ? -1 : 1;
+            }
+            if (a[sortedField.field] > b[sortedField.field]) {
+              return sortedField.order === 'asc' ? 1 : -1;
+            }
+          } else {
+            if (
+              parseFloat(a[sortedField.field]) <
+              parseFloat(b[sortedField.field])
+            ) {
+              return sortedField.order === 'asc' ? -1 : 1;
+            }
+            if (
+              parseFloat(a[sortedField.field]) >
+              parseFloat(b[sortedField.field])
+            ) {
+              return sortedField.order === 'asc' ? 1 : -1;
             }
           }
-          // if (a[sortedField.field] < b[sortedField.field]) {
-          //   return sortedField.order === 'asc' ? -1 : 1;
-          // }
-          // if (a[sortedField.field] > b[sortedField.field]) {
-          //   return sortedField.order === 'asc' ? 1 : -1;
-          // }
           return 0;
         }),
       ];
@@ -57,7 +63,9 @@ function App() {
   const [wage, setWage] = React.useState('');
   const [isShowingEmployees, setIsShowingEmployees] = React.useState(false);
   const [employeeList, setEmployeeList] = React.useState([]);
+  const [isEditing, setIsEditing] = React.useState({ state: false, id: null });
 
+  // eslint-disable-next-line no-unused-vars
   const { list, requestSort, sortedField } = useSortableData(employeeList);
 
   const firstInput = React.useRef('firstInput');
@@ -68,6 +76,7 @@ function App() {
     setGender('');
     setPosition('');
     setWage('');
+    setIsEditing({ state: false, id: null });
     firstInput.current.focus();
   }
 
@@ -104,6 +113,34 @@ function App() {
     })();
   }
 
+  function submitEdit() {
+    (async function () {
+      try {
+        const response = await axios.put('http://localhost:3001/api/update', {
+          name,
+          age,
+          gender,
+          position,
+          wage,
+          id: isEditing.id,
+        });
+
+        if (response.status === 200) {
+          setEmployeeList([
+            ...employeeList.filter((employee) => employee.id !== isEditing.id),
+            { name, age, gender, position, wage, id: isEditing.id },
+          ]);
+          alert('Employee modifications submit succeeded!');
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setIsEditing({ state: false, id: null });
+        resetForm();
+      }
+    })();
+  }
+
   function handleShowEmployees() {
     setIsShowingEmployees(!isShowingEmployees);
     if (!isShowingEmployees) getEmployees();
@@ -125,14 +162,53 @@ function App() {
     })();
   }
 
+  function setEdit(employee) {
+    setIsEditing({
+      state: true,
+      id: employee.id,
+    });
+
+    setName(employee.name);
+    setAge(employee.age);
+    setGender(employee.gender);
+    setPosition(employee.position);
+    setWage(employee.wage);
+  }
+
   function getSortedClassName(name) {
     if (!sortedField) return;
     return sortedField.field === name ? sortedField.order : undefined;
   }
 
+  function handleDelete(employee) {
+    // eslint-disable-next-line no-restricted-globals
+    if (confirm('Are you sure?'))
+      (async function () {
+        try {
+          const response = await axios.delete(
+            `http://localhost:3001/api/delete/${employee.id}`,
+            {}
+          );
+
+          if (response.status === 200) {
+            setEmployeeList([
+              ...employeeList.filter(
+                (currentEmployee) => currentEmployee.id !== employee.id
+              ),
+            ]);
+            alert('Delete succeeded!');
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      })();
+    return;
+  }
+
   return (
     <div className="App">
       <div className="form">
+        <h2 className="form-title">{isEditing.state ? 'Edit' : 'New'}</h2>
         <label htmlFor="name">Name:</label>
         <input
           type="text"
@@ -179,8 +255,15 @@ function App() {
           value={wage}
           onChange={({ target }) => setWage(target.value)}
         />
-        <button onClick={handleSubmit}>Add employee</button>
-        <button onClick={resetForm}>Reset</button>
+        {isEditing.state ? (
+          <button onClick={submitEdit}>Save modifications</button>
+        ) : (
+          <button onClick={handleSubmit}>Add employee</button>
+        )}
+
+        <button onClick={resetForm}>
+          {isEditing.state ? 'Come back' : 'Reset fields'}
+        </button>
       </div>
       <div className="employees">
         <hr />
@@ -192,32 +275,37 @@ function App() {
             <tbody>
               <tr>
                 <th
-                  onClick={() => requestSort('name')}
+                  onDoubleClick={() => requestSort('name')}
                   className={getSortedClassName('name')}
+                  title="Sort by name"
                 >
                   Name
                 </th>
                 <th
-                  onClick={() => requestSort('age')}
+                  onDoubleClick={() => requestSort('age')}
                   className={getSortedClassName('age')}
+                  title="Sort by age"
                 >
                   Age
                 </th>
                 <th
-                  onClick={() => requestSort('gender')}
+                  onDoubleClick={() => requestSort('gender')}
                   className={getSortedClassName('gender')}
+                  title="Sort by gender"
                 >
                   Gender
                 </th>
                 <th
-                  onClick={() => requestSort('position')}
+                  onDoubleClick={() => requestSort('position')}
                   className={getSortedClassName('position')}
+                  title="Sort by position"
                 >
                   Position
                 </th>
                 <th
-                  onClick={() => requestSort('wage')}
+                  onDoubleClick={() => requestSort('wage')}
                   className={getSortedClassName('wage')}
+                  title="Sort by wage"
                 >
                   Wage
                 </th>
@@ -229,7 +317,30 @@ function App() {
                     <td>{employee.age}</td>
                     <td>{employee.gender}</td>
                     <td>{employee.position}</td>
-                    <td>$ {employee.wage}</td>
+                    <td>
+                      {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                      }).format(employee.wage)}
+                    </td>
+                    <td>
+                      <span
+                        onClick={() => setEdit(employee)}
+                        className="btn edit"
+                        title="Edit employee"
+                      >
+                        ↺
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        onClick={() => handleDelete(employee)}
+                        className="btn delete"
+                        title="Delete employee"
+                      >
+                        ⨉
+                      </span>
+                    </td>
                   </tr>
                 );
               })}

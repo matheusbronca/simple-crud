@@ -21,6 +21,12 @@
   padding: 1rem;
 }
 
+.form-title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
 .form label {
   font-size: 1.1rem;
 }
@@ -95,4 +101,40 @@ hr {
   margin-left: 0.15rem;
   top: 50%;
   transform: translateY(-60%);
+}
+
+.table tr td:last-child {
+  padding: 0.1rem 0.1rem 0.1rem 0.25rem;
+  border: none;
+}
+
+.table tr td:nth-last-child(2) {
+  padding: 0.1rem 0.1rem 0.1rem 0.5rem;
+  border: none;
+}
+
+.btn {
+  padding: 0.025rem 0.15rem;
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.delete {
+  color: tomato;
+  border: 1.5px solid tomato;
+}
+
+.delete:hover {
+  background-color: tomato;
+  color: white;
+}
+
+.edit {
+  color: green;
+  border: 1.5px solid green;
+}
+
+.edit:hover {
+  background-color: green;
+  color: white;
 }
